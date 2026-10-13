@@ -37,6 +37,8 @@ For local multi-repo development, add `vepr.localKit=true` to `local.properties`
 
 ### iOS / Swift Package Manager
 
+Requires **Xcode 26** (Swift tools version 6.2+).
+
 In your `Package.swift`:
 
 ```swift

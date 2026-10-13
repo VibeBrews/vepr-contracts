@@ -25,3 +25,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `contracts-signing`: canonical signing payload encoder (`PayloadEncoder`), key rules verifier (`KeyRules`), strict-DER ECDSA signature verifier (`SignatureVerifier`), enrollment codes normalizer (`EnrollmentCodes`), and deterministic test vector generator (`VectorGenerator`).
 - Committed canonical signing test vectors (`signing/vectors/v1.json`) and test keys (`TEST-ONLY-p256.pem`, `TEST-ONLY-p256-other.pem`) covering positive, negative, and encoder rejection cases with RFC 6979 deterministic signatures.
 - Automated vector drift verification (`verifyVectorsUpToDate`) wired into Gradle check.
+- Swift package (`Package.swift`, Swift 6.2 toolchain) targeting iOS 17 and macOS 14:
+  - `VeprSigning`: pure Foundation + CryptoKit reference encoder (`PayloadEncoder`), key rules verifier (`KeyRules`), and enrollment code normalizer (`EnrollmentCodes`).
+  - `VeprDeviceAPI`: generated Swift OpenAPI client for `openapi/device.yaml` using pinned `swift-openapi-generator` 1.14.0, `swift-openapi-runtime` 1.13.0, and `swift-openapi-urlsession` 1.3.2.
+  - `VeprSigningTests`: Swift Testing suite verifying all 23 canonical test vectors from `signing/vectors/v1.json` and unit tests.
+- Extended Swift sync script (`scripts/sync-swift.sh`) syncing both `openapi/device.yaml` and `signing/vectors/v1.json` with strict `--check` mode.

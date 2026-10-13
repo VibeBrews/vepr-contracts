@@ -9,22 +9,34 @@ if [ "${1:-}" = "--check" ]; then
   CHECK_ONLY=true
 fi
 
-DEVICE_SPEC="$REPO_ROOT/openapi/device.yaml"
-SWIFT_SPEC="$REPO_ROOT/Sources/VeprDeviceAPI/openapi.yaml"
+PAIRS=(
+  "openapi/device.yaml:Sources/VeprDeviceAPI/openapi.yaml:Swift device spec"
+  "signing/vectors/v1.json:Tests/VeprSigningTests/Resources/v1.json:Swift signing test vectors"
+)
 
-if [ "$CHECK_ONLY" = true ]; then
-  if [ ! -f "$SWIFT_SPEC" ]; then
-    echo "❌ $SWIFT_SPEC does not exist. Run scripts/sync-swift.sh to sync."
-    exit 1
+EXIT_CODE=0
+
+for item in "${PAIRS[@]}"; do
+  IFS=":" read -r SRC_REL DST_REL LABEL <<< "$item"
+  SRC="$REPO_ROOT/$SRC_REL"
+  DST="$REPO_ROOT/$DST_REL"
+
+  if [ "$CHECK_ONLY" = true ]; then
+    if [ ! -f "$DST" ]; then
+      echo "❌ $DST does not exist. Run scripts/sync-swift.sh to sync."
+      EXIT_CODE=1
+    elif ! cmp -s "$SRC" "$DST"; then
+      echo "❌ $SRC and $DST differ. Run scripts/sync-swift.sh to sync."
+      diff -u "$SRC" "$DST" || true
+      EXIT_CODE=1
+    else
+      echo "✅ $LABEL is in sync."
+    fi
+  else
+    mkdir -p "$(dirname "$DST")"
+    cp "$SRC" "$DST"
+    echo "✅ Synced $SRC -> $DST"
   fi
-  if ! cmp -s "$DEVICE_SPEC" "$SWIFT_SPEC"; then
-    echo "❌ $DEVICE_SPEC and $SWIFT_SPEC differ. Run scripts/sync-swift.sh to sync."
-    diff -u "$DEVICE_SPEC" "$SWIFT_SPEC" || true
-    exit 1
-  fi
-  echo "✅ Swift device spec is in sync."
-else
-  mkdir -p "$(dirname "$SWIFT_SPEC")"
-  cp "$DEVICE_SPEC" "$SWIFT_SPEC"
-  echo "✅ Synced $DEVICE_SPEC -> $SWIFT_SPEC"
-fi
+done
+
+exit $EXIT_CODE
