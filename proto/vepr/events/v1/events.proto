@@ -1,0 +1,138 @@
+// Protocol Buffers definition for Vepr domain events published over NATS JetStream.
+syntax = "proto3";
+
+package vepr.events.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "EventsProto";
+option java_package = "io.vepr.contracts.events.v1";
+
+// ============================================================================
+// NATS JetStream Subjects & Conventions (CONVENTIONS §7)
+//
+// Stream: VEPR_EVENTS (File storage, max age 7 days, duplicate window 2 min)
+//
+// Subject Mappings:
+//   - ChallengeCreated     -> vepr.events.challenge.created
+//   - AuthorizationDecided -> vepr.events.authorization.decided
+//   - DeviceEnrolled       -> vepr.events.device.enrolled
+//   - DeviceRevoked        -> vepr.events.device.revoked
+//
+// Message Headers:
+//   - Nats-Msg-Id: <event_id> (JetStream message deduplication)
+//   - Vepr-Event-Type: <event_type>
+//   - traceparent: W3C trace context header
+//   - Content-Type: application/x-protobuf
+//
+// Publishing & Consumption:
+//   - Published strictly through transactional outbox tables.
+//   - Consumed by durable pull consumers: `<service>-<event-type>`.
+// ============================================================================
+
+// EventMeta provides common auditing, routing, and tracing metadata for all domain events.
+message EventMeta {
+  // Unique event identifier (UUIDv7 format).
+  string event_id = 1;
+
+  // Dot-delimited event type matching the NATS subject suffix (e.g. "challenge.created").
+  string event_type = 2;
+
+  // Tenant identifier (UUIDv7 format).
+  string tenant_id = 3;
+
+  // RFC 3339 UTC timestamp when the event occurred.
+  google.protobuf.Timestamp occurred_at = 4;
+
+  // Originating service name producing this event (e.g. "authorization", "credentials").
+  string producer = 5;
+}
+
+// ChallengeCreated is published when a biometric approval challenge is generated for a pending authorization.
+//
+// NATS Subject: vepr.events.challenge.created
+//
+// Privacy / Minimization Note:
+//   This event deliberately carries NO amount, currency, or merchant details.
+//   Delivery services (vepr-channels) require only the challenge_id to trigger push notifications.
+//   The client app retrieves challenge details directly from vepr-authorization.
+message ChallengeCreated {
+  // Common event metadata.
+  EventMeta meta = 1;
+
+  // Associated authorization identifier (UUIDv7 format).
+  string authorization_id = 2;
+
+  // Target enrolled device identifier (UUIDv7 format).
+  string device_id = 3;
+
+  // Delivery channel through which challenge is dispatched (e.g. "push").
+  string channel = 4;
+
+  // Expiration timestamp of the biometric challenge.
+  google.protobuf.Timestamp expires_at = 5;
+}
+
+// AuthorizationDecided is published when an authorization transitions to a terminal state.
+//
+// NATS Subject: vepr.events.authorization.decided
+message AuthorizationDecided {
+  // Common event metadata.
+  EventMeta meta = 1;
+
+  // Associated authorization identifier (UUIDv7 format).
+  string authorization_id = 2;
+
+  // Bank partner's unique transaction reference.
+  string bank_reference = 3;
+
+  // Terminal authorization status ("APPROVED", "DENIED", or "EXPIRED").
+  string status = 4;
+
+  // Specific reason for decision (e.g. "approved_by_customer", "denied_by_customer", "expired").
+  string decision_reason = 5;
+
+  // Identity that rendered the decision (e.g. "customer", "system", "bank").
+  string decided_by = 6;
+
+  // Timestamp when the terminal decision was finalized.
+  google.protobuf.Timestamp decided_at = 7;
+}
+
+// DeviceEnrolled is published when a mobile device successfully registers credentials.
+//
+// NATS Subject: vepr.events.device.enrolled
+message DeviceEnrolled {
+  // Common event metadata.
+  EventMeta meta = 1;
+
+  // Enrolled device identifier (UUIDv7 format).
+  string device_id = 2;
+
+  // Customer reference identifier provided by the issuing partner bank.
+  string customer_ref = 3;
+
+  // Device operating platform (e.g. "ios").
+  string platform = 4;
+
+  // Type of hardware attestation verified at enrollment (e.g. "app_attest", "none").
+  string attestation_type = 5;
+}
+
+// DeviceRevoked is published when an enrolled mobile device is revoked.
+//
+// NATS Subject: vepr.events.device.revoked
+message DeviceRevoked {
+  // Common event metadata.
+  EventMeta meta = 1;
+
+  // Revoked device identifier (UUIDv7 format).
+  string device_id = 2;
+
+  // Customer reference identifier provided by the issuing partner bank.
+  string customer_ref = 3;
+
+  // Reason for device revocation (e.g. "superseded_by_new_enrollment", "bank_revocation").
+  string reason = 4;
+}
