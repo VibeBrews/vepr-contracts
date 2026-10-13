@@ -1,0 +1,280 @@
+openapi: 3.1.0
+info:
+  title: Vepr Common Components
+  version: 1.0.0
+  description: Shared schema components, headers, and standard problem responses across Vepr APIs.
+
+components:
+  headers:
+    X-Request-Id:
+      description: Distributed tracing UUIDv7 request identifier. Returned on all responses and logged across systems.
+      required: true
+      schema:
+        type: string
+        format: uuid
+        pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+        example: "01925b6a-742e-7bb2-8098-b789ef012345"
+
+    Retry-After:
+      description: Number of seconds the client must wait before retrying the rate-limited request.
+      required: true
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 3600
+        example: 30
+
+  schemas:
+    FieldError:
+      type: object
+      additionalProperties: false
+      description: Detailed field-level validation failure information.
+      required:
+        - field
+        - message
+      properties:
+        field:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Dotted path or name of the field that failed validation.
+          example: "customer_ref"
+        message:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Human-readable explanation of why this specific field failed validation.
+          example: "customer_ref must match ^[A-Za-z0-9_.:-]+$ and be 1 to 64 characters"
+
+    Problem:
+      type: object
+      additionalProperties: false
+      description: RFC 9457 Problem Details object returned for all non-2xx HTTP errors.
+      required:
+        - type
+        - title
+        - status
+        - code
+        - request_id
+      properties:
+        type:
+          type: string
+          format: uri
+          description: URI identifying the problem type according to RFC 9457.
+          example: "https://errors.vepr.io/invalid_request"
+        title:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Short human-readable summary of the problem type.
+          example: "Invalid request"
+        status:
+          type: integer
+          minimum: 400
+          maximum: 599
+          description: HTTP status code corresponding to this error response.
+          example: 400
+        code:
+          type: string
+          description: Stable machine-readable error code in snake_case per docs/ERRORS.md.
+          enum:
+            - invalid_request
+            - idempotency_key_missing
+            - invalid_enrollment_code
+            - attestation_failed
+            - attestation_required
+            - unauthenticated
+            - forbidden
+            - invalid_signature
+            - device_revoked
+            - not_found
+            - already_decided
+            - challenge_expired
+            - idempotency_key_reused
+            - amount_out_of_range
+            - currency_not_supported
+            - rate_limited
+            - dependency_unavailable
+            - verification_unavailable
+            - internal_error
+          example: "invalid_request"
+        request_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Tracing UUIDv7 matching the X-Request-Id header of this response.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        detail:
+          type: string
+          minLength: 1
+          maxLength: 500
+          description: Optional contextual details about this error occurrence. Never leaks customer PII or keys.
+          example: "The request body failed schema validation on one or more fields."
+        errors:
+          type: array
+          description: Optional list of field-level errors when validation failed.
+          items:
+            $ref: '#/components/schemas/FieldError'
+
+    Merchant:
+      type: object
+      additionalProperties: false
+      description: Commercial merchant identity presented to the customer on phone approval screens.
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Unique merchant identifier registered with the bank or payment gateway.
+          example: "merch_chai_01"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Exact merchant business name displayed to the customer during biometric approval. NFC-normalized.
+          example: "चाय वाला ☕"
+
+  responses:
+    BadRequest:
+      description: Request validation failed, parameters missing/malformed, or invalid body payload.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: "https://errors.vepr.io/invalid_request"
+            title: "Invalid request"
+            status: 400
+            code: "invalid_request"
+            request_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+            detail: "Field customer_ref must match pattern ^[A-Za-z0-9_.:-]+$"
+            errors:
+              - field: "customer_ref"
+                message: "must match ^[A-Za-z0-9_.:-]+$ and be 1 to 64 characters"
+
+    Unauthenticated:
+      description: Caller authentication failed. Missing, expired, or invalid HMAC signature or device JWT.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: "https://errors.vepr.io/unauthenticated"
+            title: "Unauthenticated"
+            status: 401
+            code: "unauthenticated"
+            request_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+            detail: "HMAC signature verification failed or timestamp drifted past 300 seconds."
+
+    Forbidden:
+      description: Caller is authenticated but not authorized to access or modify this resource.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: "https://errors.vepr.io/forbidden"
+            title: "Forbidden"
+            status: 403
+            code: "forbidden"
+            request_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+            detail: "Device does not belong to the authenticated tenant."
+
+    NotFound:
+      description: The requested resource does not exist or does not belong to the caller's tenant.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: "https://errors.vepr.io/not_found"
+            title: "Not found"
+            status: 404
+            code: "not_found"
+            request_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+            detail: "Resource does not exist or belongs to a different tenant."
+
+    Conflict:
+      description: The request conflicts with the current resource state (e.g. challenge expired or already decided).
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: "https://errors.vepr.io/challenge_expired"
+            title: "Challenge expired"
+            status: 409
+            code: "challenge_expired"
+            request_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+            detail: "The biometric approval challenge has expired."
+
+    UnprocessableEntity:
+      description: Semantic error such as idempotency key reuse with mismatched parameters or unsupported amounts.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: "https://errors.vepr.io/idempotency_key_reused"
+            title: "Idempotency key reused"
+            status: 422
+            code: "idempotency_key_reused"
+            request_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+            detail: "The idempotency key was previously used with a different request payload."
+
+    RateLimited:
+      description: Request rate limit exceeded for this tenant or client device.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+        Retry-After:
+          $ref: '#/components/headers/Retry-After'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: "https://errors.vepr.io/rate_limited"
+            title: "Rate limited"
+            status: 429
+            code: "rate_limited"
+            request_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+            detail: "Too many requests. Please retry after the duration specified in Retry-After."
+
+    ServiceUnavailable:
+      description: A downstream service, database, or signature verifier is temporarily unavailable.
+      headers:
+        X-Request-Id:
+          $ref: '#/components/headers/X-Request-Id'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          example:
+            type: "https://errors.vepr.io/dependency_unavailable"
+            title: "Dependency unavailable"
+            status: 503
+            code: "dependency_unavailable"
+            request_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+            detail: "Downstream service temporarily unreachable; fail-closed behavior active."

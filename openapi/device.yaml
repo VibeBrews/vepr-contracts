@@ -1,0 +1,1154 @@
+openapi: 3.1.0
+info:
+  title: Vepr Device API
+  version: 1.0.0
+  description: >
+    Phone-facing REST API consumed by the Vepr iOS SDK and Authenticator app for device enrollment,
+    hardware key attestation, token exchange, biometric challenge approval, and pre-approval arming.
+    Authenticated via short-lived device JWTs except during enrollment and initial token issuance.
+servers:
+  - url: https://{host}/
+    description: Vepr Edge Proxy
+    variables:
+      host:
+        default: api.vepr.io
+        description: Phone-facing API gateway host
+
+security:
+  - device_token: []
+
+paths:
+  /v1/device/enrollments:
+    post:
+      summary: Enroll client device
+      operationId: enrollDevice
+      description: >
+        Registers a new client device, verifying hardware-backed key material (App Attest) and
+        binding it to the customer via the one-time enrollment code issued by the bank partner.
+        Unauthenticated call; rate limited by client IP and tenant.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeviceEnrollmentRequest'
+            example:
+              tenant_id: "bank_sandbox"
+              enrollment_code: "7K9MN-3P4QR"
+              platform: "ios"
+              device_key_spki: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE7Z-bH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kQ"
+              approval_key_spki: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE9X-bH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kQ"
+              attestation:
+                type: "app_attest"
+                key_id: "com.apple.devicecheck.keyid.1234567890abcdef"
+                attestation_object: "o2NmbXRkYXBwYXR0ZXN0Z2F0dFN0bXRv...base64url..."
+              device_info:
+                model: "iPhone 16 Pro"
+                os_version: "iOS 18.1"
+                app_version: "1.0.0"
+                sdk_version: "1.0.0"
+      responses:
+        '201':
+          description: Device successfully registered and enrolled.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceEnrollmentResponse'
+              example:
+                device_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                tenant_id: "bank_sandbox"
+                status: "active"
+                enrolled_at: "2026-10-13T06:19:00.123Z"
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/device/token-challenges:
+    post:
+      summary: Request device authentication challenge
+      operationId: createTokenChallenge
+      description: >
+        Issues a cryptographic nonce challenge (signing type 0x03 DEVICE_AUTH) for authenticating an enrolled device.
+        The client signs this challenge with its hardware device key to obtain a bearer JWT.
+        Unauthenticated call; rate limited by device identifier and tenant.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenChallengeRequest'
+            example:
+              tenant_id: "bank_sandbox"
+              device_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+      responses:
+        '201':
+          description: Device authentication challenge issued.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenChallengeResponse'
+              example:
+                challenge_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                nonce: "47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU"
+                expires_at: "2026-10-13T06:21:00.123Z"
+                server_time: "2026-10-13T06:20:00.123Z"
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '403':
+          $ref: './components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: './components/common.yaml#/components/responses/NotFound'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/device/tokens:
+    post:
+      summary: Exchange signed challenge for device access token
+      operationId: createDeviceToken
+      description: >
+        Validates the hardware device-key signature over the DEVICE_AUTH challenge payload (type 0x03)
+        and returns an ES256 Bearer JWT valid for 5 minutes.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTokenRequest'
+            example:
+              tenant_id: "bank_sandbox"
+              device_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+              challenge_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+              signature: "MEQCIAx1Q5sE81GfV7H6zL3nS8vW2P9mK1bQ7cD0yE4fA5gGAiAK2vB6kL9sD1nW5pM3rT7qV0xY4zA8bC2dE6fH8iJ0lQ"
+      responses:
+        '201':
+          description: Bearer JWT issued successfully.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceTokenResponse'
+              example:
+                access_token: "eyJhbGciOiJFUzI1NiIsImtpZCI6InZlcHItY3JlZHMtMSJ9.eyJpc3MiOiJ2ZXByLWNyZWRlbnRpYWxzIiwiYXVkIjoidmVwci1kZXZpY2UtYXBpIiwic3ViIjoiMDE5MjViNmEtNzQyZS03YmIyLTgwOTgtYjc4OWVmMDEyMzQ1IiwidG50IjoiYmFua19zYW5kYm94IiwiaWF0IjoxNzkxODc5NjAwLCJleHAiOjE3OTE4Nzk5MDAsImp0aSI6IjAxOTI1YjZhLTc0MmUtN2JiMi04MDk4LWI3ODllZjAxMjM0NSJ9.MEQCIF..."
+                token_type: "Bearer"
+                expires_at: "2026-10-13T06:25:00.123Z"
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '403':
+          $ref: './components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: './components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: './components/common.yaml#/components/responses/Conflict'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/device/challenges:
+    get:
+      summary: List pending challenges for device
+      operationId: listPendingChallenges
+      description: >
+        Returns all currently active, unexpired biometric approval challenges awaiting the authenticated device's decision.
+        Carries current server_time for countdown synchronization.
+      parameters:
+        - name: status
+          in: query
+          required: false
+          description: Status filter. Must be set to 'pending'.
+          schema:
+            type: string
+            enum:
+              - pending
+            default: pending
+            example: "pending"
+      responses:
+        '200':
+          description: List of pending authorization challenges.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PendingChallengesList'
+              example:
+                challenges:
+                  - id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                    merchant_name: "चाय वाला ☕"
+                    amount_minor: 50000
+                    currency: "INR"
+                    channel: "card_present"
+                    expires_at: "2026-10-13T06:18:52.123Z"
+                server_time: "2026-10-13T06:18:30.000Z"
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '403':
+          $ref: './components/common.yaml#/components/responses/Forbidden'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/device/challenges/{challenge_id}:
+    get:
+      summary: Get challenge details for signing
+      operationId: getChallenge
+      description: >
+        Fetches the complete challenge payload to be presented to the customer and signed by the device.
+
+        **Canonical signing binding (SIGNING-SPEC §4.1):**
+        These are exactly the fields of signing type 0x01 (CHALLENGE_DECISION) — the client signs these values
+        as received, with no alterations.
+      parameters:
+        - name: challenge_id
+          in: path
+          required: true
+          description: UUIDv7 challenge identifier.
+          schema:
+            type: string
+            format: uuid
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            example: "01925b6a-742e-7bb2-8098-b789ef012345"
+      responses:
+        '200':
+          description: Complete challenge payload required for signing.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Challenge'
+              example:
+                id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                tenant_id: "bank_sandbox"
+                device_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                nonce: "47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU"
+                merchant:
+                  id: "merch_chai_01"
+                  name: "चाय वाला ☕"
+                amount_minor: 50000
+                currency: "INR"
+                channel: "card_present"
+                status: "PENDING"
+                created_at: "2026-10-13T06:18:27.123Z"
+                expires_at: "2026-10-13T06:18:52.123Z"
+                server_time: "2026-10-13T06:18:30.000Z"
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '403':
+          $ref: './components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: './components/common.yaml#/components/responses/NotFound'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/device/challenges/{challenge_id}/decision:
+    post:
+      summary: Submit challenge decision with signature
+      operationId: submitChallengeDecision
+      description: >
+        Submits the customer's decision (approve or deny) accompanied by the hardware cryptographic signature.
+
+        **Key rules (SIGNING-SPEC §5):**
+        - `approve`: Must be signed with the Secure Enclave **approval key** (unlocked by Face ID biometrics).
+        - `deny`: Must be signed with the Secure Enclave **device key** (no biometric prompt needed).
+      parameters:
+        - name: challenge_id
+          in: path
+          required: true
+          description: UUIDv7 challenge identifier.
+          schema:
+            type: string
+            format: uuid
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            example: "01925b6a-742e-7bb2-8098-b789ef012345"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitDecisionRequest'
+            example:
+              decision: "approve"
+              signature: "MEQCIBx1Q5sE81GfV7H6zL3nS8vW2P9mK1bQ7cD0yE4fA5gGAiAK2vB6kL9sD1nW5pM3rT7qV0xY4zA8bC2dE6fH8iJ0lQ"
+      responses:
+        '200':
+          description: Decision successfully verified and recorded.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitDecisionResponse'
+              example:
+                id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                status: "APPROVED"
+                decided_at: "2026-10-13T06:18:31.456Z"
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '403':
+          $ref: './components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: './components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: './components/common.yaml#/components/responses/Conflict'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/device/pre-approval-challenges:
+    post:
+      summary: Request pre-approval challenge
+      operationId: createPreApprovalChallenge
+      description: >
+        Requests a challenge for pre-authorizing an upcoming contactless card tap (pre-arm).
+        Returns server nonce and constrained validity window (max 60 seconds).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePreApprovalChallengeRequest'
+            example:
+              max_amount_minor: 200000
+              currency: "INR"
+              duration_seconds: 60
+      responses:
+        '201':
+          description: Pre-approval challenge issued.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreApprovalChallengeResponse'
+              example:
+                id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                tenant_id: "bank_sandbox"
+                device_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                nonce: "47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU"
+                max_amount_minor: 200000
+                currency: "INR"
+                channel_scope: "card_present"
+                expires_at: "2026-10-13T06:19:30.000Z"
+                server_time: "2026-10-13T06:18:30.000Z"
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '403':
+          $ref: './components/common.yaml#/components/responses/Forbidden'
+        '422':
+          $ref: './components/common.yaml#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/device/pre-approvals/{pre_approval_id}/activate:
+    post:
+      summary: Activate pre-approval with biometric signature
+      operationId: activatePreApproval
+      description: >
+        Submits the approval-key signature over signing type 0x02 PRE_APPROVAL to activate the pre-approval.
+        Only one active pre-approval can exist per device.
+      parameters:
+        - name: pre_approval_id
+          in: path
+          required: true
+          description: UUIDv7 pre-approval identifier.
+          schema:
+            type: string
+            format: uuid
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            example: "01925b6a-742e-7bb2-8098-b789ef012345"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ActivatePreApprovalRequest'
+            example:
+              signature: "MEQCIBx1Q5sE81GfV7H6zL3nS8vW2P9mK1bQ7cD0yE4fA5gGAiAK2vB6kL9sD1nW5pM3rT7qV0xY4zA8bC2dE6fH8iJ0lQ"
+      responses:
+        '200':
+          description: Pre-approval activated and ready for consumption.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivatedPreApprovalResponse'
+              example:
+                id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                status: "ACTIVE"
+                max_amount_minor: 200000
+                currency: "INR"
+                expires_at: "2026-10-13T06:19:30.000Z"
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '403':
+          $ref: './components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: './components/common.yaml#/components/responses/NotFound'
+        '409':
+          $ref: './components/common.yaml#/components/responses/Conflict'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/device/pre-approvals/{pre_approval_id}:
+    delete:
+      summary: Cancel pre-approval
+      operationId: deletePreApproval
+      description: >
+        Cancels an active or pending pre-approval, preventing it from being consumed on tap.
+      parameters:
+        - name: pre_approval_id
+          in: path
+          required: true
+          description: UUIDv7 pre-approval identifier.
+          schema:
+            type: string
+            format: uuid
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            example: "01925b6a-742e-7bb2-8098-b789ef012345"
+      responses:
+        '204':
+          description: Pre-approval successfully canceled.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '403':
+          $ref: './components/common.yaml#/components/responses/Forbidden'
+        '404':
+          $ref: './components/common.yaml#/components/responses/NotFound'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/device/push-tokens:
+    post:
+      summary: Register APNs push notification token
+      operationId: registerPushToken
+      description: >
+        Registers or updates the Apple Push Notification service (APNs) device token for time-sensitive challenge alerts.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterPushTokenRequest'
+            example:
+              token: "70a6c2f9d8e7b6a54321fedcba0987654321fedcba0987654321fedcba098765"
+              apns_environment: "sandbox"
+              bundle_id: "io.vepr.authenticator"
+      responses:
+        '204':
+          description: Push token registered successfully.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '403':
+          $ref: './components/common.yaml#/components/responses/Forbidden'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+components:
+  securitySchemes:
+    device_token:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: >
+        Short-lived ES256 Bearer JWT issued by vepr-credentials.
+        Claims: `iss=vepr-credentials`, `aud=vepr-device-api`, `sub=<device_id>`, `tnt=<tenant_id>`, `iat`, `exp` (5 minutes), `jti`.
+        Validated locally by backend services using credentials JWKS.
+
+  schemas:
+    Attestation:
+      type: object
+      additionalProperties: false
+      description: >
+        Hardware key attestation. For iOS production tenants, type must be 'app_attest' with valid
+        key_id and attestation_object. For sandbox virtual devices, type may be 'none'.
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - app_attest
+            - none
+          description: Attestation format.
+          example: "app_attest"
+        key_id:
+          type:
+            - string
+            - "null"
+          maxLength: 200
+          description: Apple App Attest key identifier string. Required when type is app_attest.
+          example: "com.apple.devicecheck.keyid.1234567890abcdef"
+        attestation_object:
+          type:
+            - string
+            - "null"
+          maxLength: 22000
+          description: >
+            Base64url-encoded App Attest CBOR attestation statement (max 16 KiB decoded).
+            Required when type is app_attest.
+          example: "o2NmbXRkYXBwYXR0ZXN0Z2F0dFN0bXRv"
+
+    DeviceInfo:
+      type: object
+      additionalProperties: false
+      description: Client device metadata for logging and compatibility tracking.
+      required:
+        - model
+        - os_version
+        - app_version
+        - sdk_version
+      properties:
+        model:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Device hardware model.
+          example: "iPhone 16 Pro"
+        os_version:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Operating system version.
+          example: "iOS 18.1"
+        app_version:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Host application version string.
+          example: "1.0.0"
+        sdk_version:
+          type: string
+          minLength: 1
+          maxLength: 50
+          description: Vepr iOS SDK version.
+          example: "1.0.0"
+
+    DeviceEnrollmentRequest:
+      type: object
+      additionalProperties: false
+      description: Payload for device cryptographic enrollment.
+      required:
+        - tenant_id
+        - enrollment_code
+        - platform
+        - device_key_spki
+        - approval_key_spki
+        - attestation
+        - device_info
+      properties:
+        tenant_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Identifier of the bank tenant.
+          example: "bank_sandbox"
+        enrollment_code:
+          type: string
+          minLength: 1
+          maxLength: 20
+          description: One-time enrollment code issued to customer (e.g. 7K9MN-3P4QR).
+          example: "7K9MN-3P4QR"
+        platform:
+          type: string
+          enum:
+            - ios
+            - virtual
+          description: Device hardware platform.
+          example: "ios"
+        device_key_spki:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Base64url-encoded uncompressed P-256 SubjectPublicKeyInfo DER for device key.
+          example: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE7Z-bH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kQ"
+        approval_key_spki:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Base64url-encoded uncompressed P-256 SubjectPublicKeyInfo DER for biometric approval key.
+          example: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE9X-bH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kH4P8yJ4_kQ"
+        attestation:
+          $ref: '#/components/schemas/Attestation'
+        device_info:
+          $ref: '#/components/schemas/DeviceInfo'
+
+    DeviceEnrollmentResponse:
+      type: object
+      additionalProperties: false
+      description: Successful enrollment confirmation record.
+      required:
+        - device_id
+        - tenant_id
+        - status
+        - enrolled_at
+      properties:
+        device_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Assigned UUIDv7 device identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        tenant_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Tenant identifier.
+          example: "bank_sandbox"
+        status:
+          type: string
+          enum:
+            - active
+          description: Current registration status.
+          example: "active"
+        enrolled_at:
+          type: string
+          format: date-time
+          description: Timestamp when device enrollment was finalized.
+          example: "2026-10-13T06:19:00.123Z"
+
+    TokenChallengeRequest:
+      type: object
+      additionalProperties: false
+      description: Request for device authentication challenge.
+      required:
+        - tenant_id
+        - device_id
+      properties:
+        tenant_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Bank tenant identifier.
+          example: "bank_sandbox"
+        device_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Enrolled device UUIDv7.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+
+    TokenChallengeResponse:
+      type: object
+      additionalProperties: false
+      description: Nonce challenge issued for device authentication.
+      required:
+        - challenge_id
+        - nonce
+        - expires_at
+        - server_time
+      properties:
+        challenge_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Challenge UUIDv7 identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        nonce:
+          type: string
+          minLength: 43
+          maxLength: 44
+          description: 32 raw random bytes encoded as base64url without padding.
+          example: "47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU"
+        expires_at:
+          type: string
+          format: date-time
+          description: Timestamp when this authentication challenge expires.
+          example: "2026-10-13T06:21:00.123Z"
+        server_time:
+          type: string
+          format: date-time
+          description: Current server clock timestamp for time synchronization.
+          example: "2026-10-13T06:20:00.123Z"
+
+    CreateTokenRequest:
+      type: object
+      additionalProperties: false
+      description: Signed challenge payload to obtain a bearer device token.
+      required:
+        - tenant_id
+        - device_id
+        - challenge_id
+        - signature
+      properties:
+        tenant_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Bank tenant identifier.
+          example: "bank_sandbox"
+        device_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Device UUIDv7 identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        challenge_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Identifier of the challenge being signed.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        signature:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Base64url-encoded ASN.1 DER ECDSA signature produced by the device key over DEVICE_AUTH (type 0x03).
+          example: "MEQCIAx1Q5sE81GfV7H6zL3nS8vW2P9mK1bQ7cD0yE4fA5gGAiAK2vB6kL9sD1nW5pM3rT7qV0xY4zA8bC2dE6fH8iJ0lQ"
+
+    DeviceTokenResponse:
+      type: object
+      additionalProperties: false
+      description: Bearer JWT access token response.
+      required:
+        - access_token
+        - token_type
+        - expires_at
+      properties:
+        access_token:
+          type: string
+          description: Short-lived ES256 Bearer JWT.
+          example: "eyJhbGciOiJFUzI1NiIsImtpZCI6InZlcHItY3JlZHMtMSJ9..."
+        token_type:
+          type: string
+          enum:
+            - Bearer
+          description: Authorization header scheme.
+          example: "Bearer"
+        expires_at:
+          type: string
+          format: date-time
+          description: Token expiration timestamp (5 minutes from issuance).
+          example: "2026-10-13T06:25:00.123Z"
+
+    PendingChallengeItem:
+      type: object
+      additionalProperties: false
+      description: Summary of an awaiting biometric approval challenge.
+      required:
+        - id
+        - merchant_name
+        - amount_minor
+        - currency
+        - channel
+        - expires_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Challenge UUIDv7 identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        merchant_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Display name of the merchant.
+          example: "चाय वाला ☕"
+        amount_minor:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Amount in minor currency units (paise).
+          example: 50000
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: ISO 4217 currency code.
+          example: "INR"
+        channel:
+          type: string
+          enum:
+            - card_present
+            - qr
+          description: Transaction channel.
+          example: "card_present"
+        expires_at:
+          type: string
+          format: date-time
+          description: Challenge expiration timestamp.
+          example: "2026-10-13T06:18:52.123Z"
+
+    PendingChallengesList:
+      type: object
+      additionalProperties: false
+      description: List of pending challenges with current server clock for synchronization.
+      required:
+        - challenges
+        - server_time
+      properties:
+        challenges:
+          type: array
+          description: Array of pending challenges for the device.
+          items:
+            $ref: '#/components/schemas/PendingChallengeItem'
+        server_time:
+          type: string
+          format: date-time
+          description: Current server clock timestamp for client countdown alignment.
+          example: "2026-10-13T06:18:30.000Z"
+
+    Challenge:
+      type: object
+      additionalProperties: false
+      description: Full challenge payload required for signing type 0x01 CHALLENGE_DECISION.
+      required:
+        - id
+        - tenant_id
+        - device_id
+        - nonce
+        - merchant
+        - amount_minor
+        - currency
+        - channel
+        - status
+        - created_at
+        - expires_at
+        - server_time
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Challenge UUIDv7 identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        tenant_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Tenant identifier.
+          example: "bank_sandbox"
+        device_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Device UUIDv7 identifier targeted by the challenge.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        nonce:
+          type: string
+          minLength: 43
+          maxLength: 44
+          description: 32 raw random bytes encoded as base64url without padding.
+          example: "47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU"
+        merchant:
+          $ref: './components/common.yaml#/components/schemas/Merchant'
+        amount_minor:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Amount in minor currency units (paise).
+          example: 50000
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: ISO 4217 upper-case currency code.
+          example: "INR"
+        channel:
+          type: string
+          enum:
+            - card_present
+            - qr
+          description: Channel initiating the transaction.
+          example: "card_present"
+        status:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - DENIED
+            - EXPIRED
+          description: Current challenge status.
+          example: "PENDING"
+        created_at:
+          type: string
+          format: date-time
+          description: Challenge creation timestamp.
+          example: "2026-10-13T06:18:27.123Z"
+        expires_at:
+          type: string
+          format: date-time
+          description: Expiration timestamp.
+          example: "2026-10-13T06:18:52.123Z"
+        server_time:
+          type: string
+          format: date-time
+          description: Current server clock timestamp.
+          example: "2026-10-13T06:18:30.000Z"
+
+    SubmitDecisionRequest:
+      type: object
+      additionalProperties: false
+      description: Customer decision accompanied by cryptographic signature.
+      required:
+        - decision
+        - signature
+      properties:
+        decision:
+          type: string
+          enum:
+            - approve
+            - deny
+          description: Decision choice. 'approve' requires biometric approval key; 'deny' requires device key.
+          example: "approve"
+        signature:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Base64url-encoded ASN.1 DER ECDSA signature over canonical payload type 0x01.
+          example: "MEQCIBx1Q5sE81GfV7H6zL3nS8vW2P9mK1bQ7cD0yE4fA5gGAiAK2vB6kL9sD1nW5pM3rT7qV0xY4zA8bC2dE6fH8iJ0lQ"
+
+    SubmitDecisionResponse:
+      type: object
+      additionalProperties: false
+      description: Recorded decision outcome.
+      required:
+        - id
+        - status
+        - decided_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Challenge UUIDv7 identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        status:
+          type: string
+          enum:
+            - APPROVED
+            - DENIED
+          description: Final decision status.
+          example: "APPROVED"
+        decided_at:
+          type: string
+          format: date-time
+          description: Timestamp when the decision was verified and finalized.
+          example: "2026-10-13T06:18:31.456Z"
+
+    CreatePreApprovalChallengeRequest:
+      type: object
+      additionalProperties: false
+      description: Parameters to request a pre-approval arming challenge.
+      required:
+        - max_amount_minor
+        - currency
+        - duration_seconds
+      properties:
+        max_amount_minor:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Maximum amount allowed for pre-approved tap (in paise).
+          example: 200000
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: ISO 4217 upper-case currency code.
+          example: "INR"
+        duration_seconds:
+          type: integer
+          minimum: 1
+          maximum: 60
+          description: Pre-approval arming validity window in seconds (1–60).
+          example: 60
+
+    PreApprovalChallengeResponse:
+      type: object
+      additionalProperties: false
+      description: Challenge for pre-approval arming (signing type 0x02 PRE_APPROVAL).
+      required:
+        - id
+        - tenant_id
+        - device_id
+        - nonce
+        - max_amount_minor
+        - currency
+        - channel_scope
+        - expires_at
+        - server_time
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Pre-approval UUIDv7 identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        tenant_id:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Tenant identifier.
+          example: "bank_sandbox"
+        device_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Device UUIDv7 identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        nonce:
+          type: string
+          minLength: 43
+          maxLength: 44
+          description: 32 raw random bytes encoded as base64url without padding.
+          example: "47DEQpj8HBSa-_TImW-5JCeuQeRkm5NMpJWZG3hSuFU"
+        max_amount_minor:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Maximum allowed amount in paise.
+          example: 200000
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: ISO 4217 currency code.
+          example: "INR"
+        channel_scope:
+          type: string
+          enum:
+            - card_present
+          description: Scope of allowed transaction channels (v1 allows card_present only).
+          example: "card_present"
+        expires_at:
+          type: string
+          format: date-time
+          description: Pre-approval challenge expiration timestamp.
+          example: "2026-10-13T06:19:30.000Z"
+        server_time:
+          type: string
+          format: date-time
+          description: Current server clock timestamp.
+          example: "2026-10-13T06:18:30.000Z"
+
+    ActivatePreApprovalRequest:
+      type: object
+      additionalProperties: false
+      description: Biometric signature activating a pre-approval challenge.
+      required:
+        - signature
+      properties:
+        signature:
+          type: string
+          minLength: 1
+          maxLength: 120
+          description: Base64url-encoded ASN.1 DER ECDSA signature produced by the approval key over PRE_APPROVAL (type 0x02).
+          example: "MEQCIBx1Q5sE81GfV7H6zL3nS8vW2P9mK1bQ7cD0yE4fA5gGAiAK2vB6kL9sD1nW5pM3rT7qV0xY4zA8bC2dE6fH8iJ0lQ"
+
+    ActivatedPreApprovalResponse:
+      type: object
+      additionalProperties: false
+      description: Confirmation of activated pre-approval.
+      required:
+        - id
+        - status
+        - max_amount_minor
+        - currency
+        - expires_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Pre-approval UUIDv7 identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        status:
+          type: string
+          enum:
+            - ACTIVE
+          description: Pre-approval status.
+          example: "ACTIVE"
+        max_amount_minor:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Maximum allowed amount in minor units.
+          example: 200000
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: ISO 4217 currency code.
+          example: "INR"
+        expires_at:
+          type: string
+          format: date-time
+          description: Expiration timestamp after which the pre-approval is no longer consumable.
+          example: "2026-10-13T06:19:30.000Z"
+
+    RegisterPushTokenRequest:
+      type: object
+      additionalProperties: false
+      description: Device APNs push notification token registration.
+      required:
+        - token
+        - apns_environment
+        - bundle_id
+      properties:
+        token:
+          type: string
+          minLength: 64
+          maxLength: 200
+          pattern: "^[0-9a-fA-F]{64,200}$"
+          description: Hexadecimal APNs device token string (64 to 200 characters).
+          example: "70a6c2f9d8e7b6a54321fedcba0987654321fedcba0987654321fedcba098765"
+        apns_environment:
+          type: string
+          enum:
+            - sandbox
+            - production
+          description: Apple Push Notification service target gateway environment.
+          example: "sandbox"
+        bundle_id:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Application bundle identifier.
+          example: "io.vepr.authenticator"

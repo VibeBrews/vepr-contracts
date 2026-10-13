@@ -1,0 +1,1029 @@
+openapi: 3.1.0
+info:
+  title: Vepr Partner API
+  version: 1.0.0
+  description: >
+    Bank-facing REST API for real-time biometric payment authorization, customer enrollment,
+    and device lifecycle management. All calls enter through the edge proxy and authenticate
+    via HMAC-SHA256 request signing over API keys.
+servers:
+  - url: https://{host}/
+    description: Vepr Edge Proxy
+    variables:
+      host:
+        default: api.vepr.io
+        description: Bank-facing API gateway host
+
+security:
+  - vepr_key_id: []
+    vepr_timestamp: []
+    vepr_signature: []
+
+paths:
+  /v1/authorizations:
+    post:
+      summary: Request payment authorization
+      operationId: createAuthorization
+      description: >
+        Initiates a real-time biometric payment authorization challenge to the customer's registered phone.
+        Requires an Idempotency-Key header. If a pre-approval is active for this customer on card_present channel,
+        it is consumed immediately returning status APPROVED. Otherwise, a challenge is created with status PENDING
+        and delivered to the customer via APNs push.
+
+        **Idempotency semantics (CONVENTIONS §4):**
+        - Same `Idempotency-Key` + identical payload returns the existing authorization with `200 OK` (or `201 Created`).
+        - Same `Idempotency-Key` + mismatched payload returns `422 Unprocessable Entity` (`idempotency_key_reused`).
+        - Keys are retained per tenant for at least 24 hours.
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          description: Unique idempotency key (1–64 characters) guaranteeing safe retries.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: "^[A-Za-z0-9_-]+$"
+            example: "idemp_20261013_0001"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAuthorizationRequest'
+            example:
+              customer_ref: "cust_nikhil_01"
+              amount_minor: 50000
+              currency: "INR"
+              merchant:
+                id: "merch_chai_01"
+                name: "चाय वाला ☕"
+              channel: "card_present"
+              bank_reference: "txn_20261013_001"
+      responses:
+        '201':
+          description: Payment authorization initiated or pre-approved.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Authorization'
+              example:
+                id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                status: "PENDING"
+                customer_ref: "cust_nikhil_01"
+                amount_minor: 50000
+                currency: "INR"
+                merchant:
+                  id: "merch_chai_01"
+                  name: "चाय वाला ☕"
+                channel: "card_present"
+                bank_reference: "txn_20261013_001"
+                created_at: "2026-10-13T06:18:27.123Z"
+                expires_at: "2026-10-13T06:18:52.123Z"
+                decided_at: null
+                decided_by: null
+                decision_reason: null
+        '200':
+          description: Idempotent replay of an existing authorization for this Idempotency-Key.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Authorization'
+              example:
+                id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                status: "PENDING"
+                customer_ref: "cust_nikhil_01"
+                amount_minor: 50000
+                currency: "INR"
+                merchant:
+                  id: "merch_chai_01"
+                  name: "चाय वाला ☕"
+                channel: "card_present"
+                bank_reference: "txn_20261013_001"
+                created_at: "2026-10-13T06:18:27.123Z"
+                expires_at: "2026-10-13T06:18:52.123Z"
+                decided_at: null
+                decided_by: null
+                decision_reason: null
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '422':
+          $ref: './components/common.yaml#/components/responses/UnprocessableEntity'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/authorizations/{authorization_id}:
+    get:
+      summary: Get authorization details
+      operationId: getAuthorization
+      description: >
+        Fetches the current status and decision details for a given authorization.
+        Returns 404 if the authorization does not exist or does not belong to the authenticated partner tenant.
+      parameters:
+        - name: authorization_id
+          in: path
+          required: true
+          description: UUIDv7 authorization identifier.
+          schema:
+            type: string
+            format: uuid
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            example: "01925b6a-742e-7bb2-8098-b789ef012345"
+      responses:
+        '200':
+          description: Current authorization record.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Authorization'
+              example:
+                id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                status: "APPROVED"
+                customer_ref: "cust_nikhil_01"
+                amount_minor: 50000
+                currency: "INR"
+                merchant:
+                  id: "merch_chai_01"
+                  name: "चाय वाला ☕"
+                channel: "card_present"
+                bank_reference: "txn_20261013_001"
+                created_at: "2026-10-13T06:18:27.123Z"
+                expires_at: "2026-10-13T06:18:52.123Z"
+                decided_at: "2026-10-13T06:18:31.456Z"
+                decided_by: "device"
+                decision_reason: "approved_by_customer"
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '404':
+          $ref: './components/common.yaml#/components/responses/NotFound'
+
+  /v1/enrollments:
+    post:
+      summary: Issue device enrollment code
+      operationId: createEnrollment
+      description: >
+        Generates a one-time enrollment code for an authenticated banking customer.
+        The customer displays or scans this code on their mobile device to complete cryptographic binding.
+
+        **Repeat-safe by design (CONVENTIONS §4):**
+        Issuing a new code automatically voids all earlier unused codes for that customer.
+        Codes are stored strictly as salted HMACs with a server pepper and cannot be re-read;
+        hence repeating this request safely supersedes prior unconsumed codes without requiring
+        an Idempotency-Key header.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateEnrollmentRequest'
+            example:
+              customer_ref: "cust_nikhil_01"
+      responses:
+        '201':
+          description: Enrollment code successfully generated.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Enrollment'
+              example:
+                enrollment_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                code: "7K9MN-3P4QR"
+                expires_at: "2026-10-13T06:28:27.123Z"
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/devices:
+    get:
+      summary: List registered devices for customer
+      operationId: listDevices
+      description: >
+        Returns all registered devices for a customer reference, including active and previously revoked devices.
+      parameters:
+        - name: customer_ref
+          in: query
+          required: true
+          description: Bank customer identifier.
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 64
+            pattern: "^[A-Za-z0-9_.:-]+$"
+            example: "cust_nikhil_01"
+      responses:
+        '200':
+          description: List of registered devices for customer.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeviceList'
+              example:
+                devices:
+                  - id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                    status: "active"
+                    platform: "ios"
+                    attestation_type: "app_attest"
+                    model: "iPhone 16 Pro"
+                    enrolled_at: "2026-10-13T04:18:27.123Z"
+                    revoked_at: null
+                    revoke_reason: null
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+  /v1/devices/{device_id}/revoke:
+    post:
+      summary: Revoke device
+      operationId: revokeDevice
+      description: >
+        Revokes a customer device immediately. Once revoked, any subsequent signature from this device
+        fails verification instantly (live check against credentials database). Associated push tokens are deleted.
+
+        **Repeat-safe by design (CONVENTIONS §4):**
+        Revoking an already-revoked device returns the device representation unchanged with `200 OK`.
+        The operation is naturally idempotent; no Idempotency-Key header is needed.
+      parameters:
+        - name: device_id
+          in: path
+          required: true
+          description: UUIDv7 identifier of the device to revoke.
+          schema:
+            type: string
+            format: uuid
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            example: "01925b6a-742e-7bb2-8098-b789ef012345"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RevokeDeviceRequest'
+            example:
+              reason: "customer_request"
+      responses:
+        '200':
+          description: Device revoked or was already revoked.
+          headers:
+            X-Request-Id:
+              $ref: './components/common.yaml#/components/headers/X-Request-Id'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Device'
+              example:
+                id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                status: "revoked"
+                platform: "ios"
+                attestation_type: "app_attest"
+                model: "iPhone 16 Pro"
+                enrolled_at: "2026-10-13T04:18:27.123Z"
+                revoked_at: "2026-10-13T06:20:00.000Z"
+                revoke_reason: "customer_request"
+        '400':
+          $ref: './components/common.yaml#/components/responses/BadRequest'
+        '401':
+          $ref: './components/common.yaml#/components/responses/Unauthenticated'
+        '404':
+          $ref: './components/common.yaml#/components/responses/NotFound'
+        '429':
+          $ref: './components/common.yaml#/components/responses/RateLimited'
+        '503':
+          $ref: './components/common.yaml#/components/responses/ServiceUnavailable'
+
+webhooks:
+  authorization.decided:
+    post:
+      summary: Authorization decided webhook
+      description: >
+        Delivered to the partner's configured webhook URL when an authorization reaches a terminal
+        state (APPROVED, DENIED, or EXPIRED). Signed with the tenant's webhook HMAC secret.
+      parameters:
+        - name: Vepr-Event-Id
+          in: header
+          required: true
+          description: Unique event UUIDv7 identifier used by receivers for idempotent deduplication.
+          schema:
+            type: string
+            format: uuid
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        - name: Vepr-Event-Type
+          in: header
+          required: true
+          description: Event type discriminator matching the webhook route.
+          schema:
+            type: string
+            enum:
+              - authorization.decided
+            example: "authorization.decided"
+        - name: Vepr-Signature
+          in: header
+          required: true
+          description: >
+            Webhook HMAC signature per CONVENTIONS §6.4:
+            `t=<unix seconds>,v1=<hex HMAC-SHA256(webhook_secret, "<t>.<raw body>")>`.
+            Receivers must reject if |now − t| > 300s.
+          schema:
+            type: string
+            example: "t=1791879507,v1=5d41402abc4b2a76b9719d911017c59286d8a0f2b2b1d7d0eb8d5f478ec9ec5d"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEnvelope_AuthorizationDecided'
+            example:
+              id: "01925b6a-742e-7bb2-8098-b789ef012345"
+              type: "authorization.decided"
+              created_at: "2026-10-13T06:18:31.456Z"
+              data:
+                authorization_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                bank_reference: "txn_20261013_001"
+                status: "APPROVED"
+                decision_reason: "approved_by_customer"
+                decided_at: "2026-10-13T06:18:31.456Z"
+      responses:
+        '200':
+          description: Webhook received and acknowledged.
+
+  device.enrolled:
+    post:
+      summary: Device enrolled webhook
+      description: >
+        Delivered when a customer completes device enrollment with hardware keys and attestation.
+      parameters:
+        - name: Vepr-Event-Id
+          in: header
+          required: true
+          description: Unique event UUIDv7 identifier for deduplication.
+          schema:
+            type: string
+            format: uuid
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        - name: Vepr-Event-Type
+          in: header
+          required: true
+          description: Event type discriminator.
+          schema:
+            type: string
+            enum:
+              - device.enrolled
+            example: "device.enrolled"
+        - name: Vepr-Signature
+          in: header
+          required: true
+          description: Webhook signature header per CONVENTIONS §6.4.
+          schema:
+            type: string
+            example: "t=1791879507,v1=5d41402abc4b2a76b9719d911017c59286d8a0f2b2b1d7d0eb8d5f478ec9ec5d"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEnvelope_DeviceEnrolled'
+            example:
+              id: "01925b6a-742e-7bb2-8098-b789ef012345"
+              type: "device.enrolled"
+              created_at: "2026-10-13T06:19:00.123Z"
+              data:
+                device_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                customer_ref: "cust_nikhil_01"
+                platform: "ios"
+                attestation_type: "app_attest"
+                enrolled_at: "2026-10-13T06:19:00.123Z"
+      responses:
+        '200':
+          description: Webhook received and acknowledged.
+
+  device.revoked:
+    post:
+      summary: Device revoked webhook
+      description: >
+        Delivered when a registered customer device is revoked via partner API or displaced by a new enrollment.
+      parameters:
+        - name: Vepr-Event-Id
+          in: header
+          required: true
+          description: Unique event UUIDv7 identifier for deduplication.
+          schema:
+            type: string
+            format: uuid
+            pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+            example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        - name: Vepr-Event-Type
+          in: header
+          required: true
+          description: Event type discriminator.
+          schema:
+            type: string
+            enum:
+              - device.revoked
+            example: "device.revoked"
+        - name: Vepr-Signature
+          in: header
+          required: true
+          description: Webhook signature header per CONVENTIONS §6.4.
+          schema:
+            type: string
+            example: "t=1791879507,v1=5d41402abc4b2a76b9719d911017c59286d8a0f2b2b1d7d0eb8d5f478ec9ec5d"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WebhookEnvelope_DeviceRevoked'
+            example:
+              id: "01925b6a-742e-7bb2-8098-b789ef012345"
+              type: "device.revoked"
+              created_at: "2026-10-13T06:20:00.000Z"
+              data:
+                device_id: "01925b6a-742e-7bb2-8098-b789ef012345"
+                customer_ref: "cust_nikhil_01"
+                revoke_reason: "customer_request"
+                revoked_at: "2026-10-13T06:20:00.000Z"
+      responses:
+        '200':
+          description: Webhook received and acknowledged.
+
+components:
+  securitySchemes:
+    vepr_key_id:
+      type: apiKey
+      in: header
+      name: Vepr-Key-Id
+      description: >
+        Tenant partner API key identifier. Identifies the bank tenant and key material in the tenant registry.
+    vepr_timestamp:
+      type: apiKey
+      in: header
+      name: Vepr-Timestamp
+      description: >
+        Unix epoch timestamp in seconds at request creation time. Replayed requests or clocks drifted by
+        more than 300 seconds are rejected with 401 unauthenticated.
+    vepr_signature:
+      type: apiKey
+      in: header
+      name: Vepr-Signature
+      description: >
+        HMAC-SHA256 request signature in the form `v1=<lowercase hex>`.
+
+        **String to sign** (lines concatenated with newline `\n`):
+        1. `v1` (literal signature version prefix)
+        2. Unix timestamp string from `Vepr-Timestamp`
+        3. HTTP method in upper-case (`POST`, `GET`, etc.)
+        4. Request path including query string exactly as transmitted (e.g. `/v1/authorizations`)
+        5. Lowercase hex-encoded SHA-256 digest of the raw request payload bytes (for empty bodies, use the hash of the empty string `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`)
+
+        `signature = HMAC-SHA256(secret_for_key_id, string_to_sign)`
+        Verified in constant time. Two active partner keys per tenant allow zero-downtime rotation.
+
+  schemas:
+    CreateAuthorizationRequest:
+      type: object
+      additionalProperties: false
+      description: Parameters required to initiate a payment authorization challenge.
+      required:
+        - customer_ref
+        - amount_minor
+        - currency
+        - merchant
+        - channel
+        - bank_reference
+      properties:
+        customer_ref:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: "^[A-Za-z0-9_.:-]+$"
+          description: Bank's persistent customer reference identifier. Never send PANs or PII to Vepr.
+          example: "cust_nikhil_01"
+        amount_minor:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Transaction amount in minor currency units (paise for INR). Never floats.
+          example: 50000
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: Three-letter ISO 4217 currency code in upper-case.
+          example: "INR"
+        merchant:
+          $ref: './components/common.yaml#/components/schemas/Merchant'
+        channel:
+          type: string
+          enum:
+            - card_present
+            - qr
+          description: Transaction initiation channel.
+          example: "card_present"
+        bank_reference:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Bank's own transaction identifier or reference number.
+          example: "txn_20261013_001"
+
+    Authorization:
+      type: object
+      additionalProperties: false
+      description: Record representing a payment authorization and its current decision lifecycle.
+      required:
+        - id
+        - status
+        - customer_ref
+        - amount_minor
+        - currency
+        - merchant
+        - channel
+        - bank_reference
+        - created_at
+        - expires_at
+        - decided_at
+        - decided_by
+        - decision_reason
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Unique authorization UUIDv7 identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        status:
+          type: string
+          enum:
+            - PENDING
+            - APPROVED
+            - DENIED
+            - EXPIRED
+          description: Lifecycle status of the authorization. Terminal once transitioned away from PENDING.
+          example: "PENDING"
+        customer_ref:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: "^[A-Za-z0-9_.:-]+$"
+          description: Bank customer identifier.
+          example: "cust_nikhil_01"
+        amount_minor:
+          type: integer
+          format: int64
+          minimum: 1
+          description: Transaction amount in minor units (paise).
+          example: 50000
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: ISO 4217 upper-case currency code.
+          example: "INR"
+        merchant:
+          $ref: './components/common.yaml#/components/schemas/Merchant'
+        channel:
+          type: string
+          enum:
+            - card_present
+            - qr
+          description: Transaction initiation channel.
+          example: "card_present"
+        bank_reference:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Bank transaction reference identifier.
+          example: "txn_20261013_001"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when authorization was created (RFC 3339 UTC with milliseconds).
+          example: "2026-10-13T06:18:27.123Z"
+        expires_at:
+          type: string
+          format: date-time
+          description: Timestamp when the pending challenge expires if unapproved.
+          example: "2026-10-13T06:18:52.123Z"
+        decided_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: Timestamp when the decision was finalized, or null if still PENDING.
+          example: "2026-10-13T06:18:31.456Z"
+        decided_by:
+          type:
+            - string
+            - "null"
+          enum:
+            - device
+            - pre_approval
+            - system
+            - null
+          description: Entity that produced the decision, or null if still PENDING.
+          example: "device"
+        decision_reason:
+          type:
+            - string
+            - "null"
+          enum:
+            - approved_by_customer
+            - approved_by_pre_approval
+            - denied_by_customer
+            - no_active_device
+            - expired
+            - too_many_invalid_signatures
+            - null
+          description: Detailed explanation of the outcome, or null if still PENDING.
+          example: "approved_by_customer"
+
+    CreateEnrollmentRequest:
+      type: object
+      additionalProperties: false
+      description: Request to issue a fresh one-time enrollment code for a customer.
+      required:
+        - customer_ref
+      properties:
+        customer_ref:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: "^[A-Za-z0-9_.:-]+$"
+          description: Customer identifier for whom the mobile device will be bound.
+          example: "cust_nikhil_01"
+
+    Enrollment:
+      type: object
+      additionalProperties: false
+      description: Newly issued enrollment code and expiration details.
+      required:
+        - enrollment_id
+        - code
+        - expires_at
+      properties:
+        enrollment_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: UUIDv7 tracking identifier for this enrollment attempt.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        code:
+          type: string
+          pattern: "^[0-9A-HJKMNP-TV-Z]{5}-[0-9A-HJKMNP-TV-Z]{5}$"
+          description: Display form Crockford base32 one-time code (XXXXX-XXXXX, excluding letters I, L, O, U).
+          example: "7K9MN-3P4QR"
+        expires_at:
+          type: string
+          format: date-time
+          description: Expiration timestamp of the enrollment code (typically 10 minutes from issuance).
+          example: "2026-10-13T06:28:27.123Z"
+
+    Device:
+      type: object
+      additionalProperties: false
+      description: Mobile device cryptographic registration details.
+      required:
+        - id
+        - status
+        - platform
+        - attestation_type
+        - model
+        - enrolled_at
+        - revoked_at
+        - revoke_reason
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Device UUIDv7 identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        status:
+          type: string
+          enum:
+            - active
+            - revoked
+          description: Current registration status of the device.
+          example: "active"
+        platform:
+          type: string
+          enum:
+            - ios
+            - virtual
+          description: Client device hardware platform.
+          example: "ios"
+        attestation_type:
+          type: string
+          enum:
+            - app_attest
+            - none
+          description: Key attestation mechanism used during device enrollment.
+          example: "app_attest"
+        model:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Hardware device model string reported during enrollment.
+          example: "iPhone 16 Pro"
+        enrolled_at:
+          type: string
+          format: date-time
+          description: Timestamp when device was originally enrolled.
+          example: "2026-10-13T04:18:27.123Z"
+        revoked_at:
+          type:
+            - string
+            - "null"
+          format: date-time
+          description: Timestamp of revocation, or null if active.
+          example: null
+        revoke_reason:
+          type:
+            - string
+            - "null"
+          enum:
+            - customer_request
+            - lost_or_stolen
+            - fraud_suspected
+            - other
+            - null
+          description: Reason for revocation, or null if active.
+          example: null
+
+    DeviceList:
+      type: object
+      additionalProperties: false
+      description: List of registered devices for the customer.
+      required:
+        - devices
+      properties:
+        devices:
+          type: array
+          description: Array of device registration records.
+          items:
+            $ref: '#/components/schemas/Device'
+
+    RevokeDeviceRequest:
+      type: object
+      additionalProperties: false
+      description: Request payload specifying the revocation reason.
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          enum:
+            - customer_request
+            - lost_or_stolen
+            - fraud_suspected
+            - other
+          description: Business reason for revoking the customer device.
+          example: "customer_request"
+
+    WebhookEnvelope_AuthorizationDecided:
+      type: object
+      additionalProperties: false
+      description: Webhook payload dispatched when an authorization decision is recorded.
+      required:
+        - id
+        - type
+        - created_at
+        - data
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Event UUIDv7 identifier matching Vepr-Event-Id header.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        type:
+          type: string
+          enum:
+            - authorization.decided
+          description: Event type string matching Vepr-Event-Type header.
+          example: "authorization.decided"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the event occurred.
+          example: "2026-10-13T06:18:31.456Z"
+        data:
+          $ref: '#/components/schemas/WebhookData_AuthorizationDecided'
+
+    WebhookData_AuthorizationDecided:
+      type: object
+      additionalProperties: false
+      description: Decision payload carrying the authorization outcome.
+      required:
+        - authorization_id
+        - bank_reference
+        - status
+        - decision_reason
+        - decided_at
+      properties:
+        authorization_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: UUIDv7 authorization identifier.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        bank_reference:
+          type: string
+          minLength: 1
+          maxLength: 64
+          description: Bank reference associated with this transaction.
+          example: "txn_20261013_001"
+        status:
+          type: string
+          enum:
+            - APPROVED
+            - DENIED
+            - EXPIRED
+          description: Final decision status.
+          example: "APPROVED"
+        decision_reason:
+          type: string
+          enum:
+            - approved_by_customer
+            - approved_by_pre_approval
+            - denied_by_customer
+            - no_active_device
+            - expired
+            - too_many_invalid_signatures
+          description: Detailed outcome reason code.
+          example: "approved_by_customer"
+        decided_at:
+          type: string
+          format: date-time
+          description: RFC 3339 UTC timestamp when the decision was finalized.
+          example: "2026-10-13T06:18:31.456Z"
+
+    WebhookEnvelope_DeviceEnrolled:
+      type: object
+      additionalProperties: false
+      description: Webhook payload dispatched upon successful device enrollment.
+      required:
+        - id
+        - type
+        - created_at
+        - data
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Event UUIDv7 identifier matching Vepr-Event-Id header.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        type:
+          type: string
+          enum:
+            - device.enrolled
+          description: Event type string matching Vepr-Event-Type header.
+          example: "device.enrolled"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when enrollment completed.
+          example: "2026-10-13T06:19:00.123Z"
+        data:
+          $ref: '#/components/schemas/WebhookData_DeviceEnrolled'
+
+    WebhookData_DeviceEnrolled:
+      type: object
+      additionalProperties: false
+      description: Enrolled device details.
+      required:
+        - device_id
+        - customer_ref
+        - platform
+        - attestation_type
+        - enrolled_at
+      properties:
+        device_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: UUIDv7 identifier assigned to the new device.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        customer_ref:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: "^[A-Za-z0-9_.:-]+$"
+          description: Bank customer identifier.
+          example: "cust_nikhil_01"
+        platform:
+          type: string
+          enum:
+            - ios
+            - virtual
+          description: Operating platform of the device.
+          example: "ios"
+        attestation_type:
+          type: string
+          enum:
+            - app_attest
+            - none
+          description: Hardware attestation type verified during enrollment.
+          example: "app_attest"
+        enrolled_at:
+          type: string
+          format: date-time
+          description: Timestamp when the device became active.
+          example: "2026-10-13T06:19:00.123Z"
+
+    WebhookEnvelope_DeviceRevoked:
+      type: object
+      additionalProperties: false
+      description: Webhook payload dispatched when a device is revoked.
+      required:
+        - id
+        - type
+        - created_at
+        - data
+      properties:
+        id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: Event UUIDv7 identifier matching Vepr-Event-Id header.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        type:
+          type: string
+          enum:
+            - device.revoked
+          description: Event type string matching Vepr-Event-Type header.
+          example: "device.revoked"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when revocation occurred.
+          example: "2026-10-13T06:20:00.000Z"
+        data:
+          $ref: '#/components/schemas/WebhookData_DeviceRevoked'
+
+    WebhookData_DeviceRevoked:
+      type: object
+      additionalProperties: false
+      description: Revoked device details.
+      required:
+        - device_id
+        - customer_ref
+        - revoke_reason
+        - revoked_at
+      properties:
+        device_id:
+          type: string
+          format: uuid
+          pattern: "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+          description: UUIDv7 identifier of the revoked device.
+          example: "01925b6a-742e-7bb2-8098-b789ef012345"
+        customer_ref:
+          type: string
+          minLength: 1
+          maxLength: 64
+          pattern: "^[A-Za-z0-9_.:-]+$"
+          description: Bank customer identifier.
+          example: "cust_nikhil_01"
+        revoke_reason:
+          type: string
+          enum:
+            - customer_request
+            - lost_or_stolen
+            - fraud_suspected
+            - other
+          description: Reason why the device was revoked.
+          example: "customer_request"
+        revoked_at:
+          type: string
+          format: date-time
+          description: Timestamp when revocation took effect.
+          example: "2026-10-13T06:20:00.000Z"

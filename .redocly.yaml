@@ -1,0 +1,28 @@
+extends:
+  - recommended
+
+apis:
+  partner:
+    root: openapi/partner.yaml
+  device:
+    root: openapi/device.yaml
+
+rules:
+  operation-4xx-response: error
+  no-unused-components: error
+
+  rule/object-additional-properties-false:
+    message: "Object schemas must explicitly set 'additionalProperties: false'."
+    severity: error
+    subject:
+      type: Schema
+      property: additionalProperties
+    where:
+      - subject:
+          type: Schema
+          property: type
+        assertions:
+          const: object
+    assertions:
+      defined: true
+      const: false
