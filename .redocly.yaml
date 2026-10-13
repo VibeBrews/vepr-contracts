@@ -10,6 +10,8 @@ apis:
 rules:
   operation-4xx-response: error
   no-unused-components: error
+  no-server-trailing-slash: off
+  info-license-strict: off
 
   rule/object-additional-properties-false:
     message: "Object schemas must explicitly set 'additionalProperties: false'."

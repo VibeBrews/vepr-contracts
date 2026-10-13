@@ -2,6 +2,9 @@ openapi: 3.1.0
 info:
   title: Vepr Partner API
   version: 1.0.0
+  license:
+    name: Proprietary
+    identifier: Proprietary
   description: >
     Bank-facing REST API for real-time biometric payment authorization, customer enrollment,
     and device lifecycle management. All calls enter through the edge proxy and authenticate
@@ -323,6 +326,7 @@ webhooks:
   authorization.decided:
     post:
       summary: Authorization decided webhook
+      operationId: webhookAuthorizationDecided
       description: >
         Delivered to the partner's configured webhook URL when an authorization reaches a terminal
         state (APPROVED, DENIED, or EXPIRED). Signed with the tenant's webhook HMAC secret.
@@ -378,6 +382,7 @@ webhooks:
   device.enrolled:
     post:
       summary: Device enrolled webhook
+      operationId: webhookDeviceEnrolled
       description: >
         Delivered when a customer completes device enrollment with hardware keys and attestation.
       parameters:
@@ -429,6 +434,7 @@ webhooks:
   device.revoked:
     post:
       summary: Device revoked webhook
+      operationId: webhookDeviceRevoked
       description: >
         Delivered when a registered customer device is revoked via partner API or displaced by a new enrollment.
       parameters:

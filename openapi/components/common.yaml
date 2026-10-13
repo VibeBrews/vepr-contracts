@@ -2,6 +2,9 @@ openapi: 3.1.0
 info:
   title: Vepr Common Components
   version: 1.0.0
+  license:
+    name: Proprietary
+    identifier: Proprietary
   description: Shared schema components, headers, and standard problem responses across Vepr APIs.
 
 components:

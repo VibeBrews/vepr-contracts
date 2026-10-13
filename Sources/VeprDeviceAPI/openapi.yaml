@@ -2,6 +2,9 @@ openapi: 3.1.0
 info:
   title: Vepr Device API
   version: 1.0.0
+  license:
+    name: Proprietary
+    identifier: Proprietary
   description: >
     Phone-facing REST API consumed by the Vepr iOS SDK and Authenticator app for device enrollment,
     hardware key attestation, token exchange, biometric challenge approval, and pre-approval arming.
