@@ -22,4 +22,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Java multi-project Gradle build (Kotlin DSL, Java 25 toolchain, version catalog) publishing to GitHub Packages and mavenLocal:
   - `contracts-proto`: generates protobuf messages and gRPC stubs (`io.vepr:vepr-contracts-proto`).
   - `contracts-openapi`: packages OpenAPI specifications as resources with `OpenApiSpecs` classpath provider (`io.vepr:vepr-contracts-openapi`).
-  - `contracts-signing`: placeholder module for canonical payload encoders.
+  - `contracts-signing`: canonical signing payload encoder (`PayloadEncoder`), key rules verifier (`KeyRules`), strict-DER ECDSA signature verifier (`SignatureVerifier`), enrollment codes normalizer (`EnrollmentCodes`), and deterministic test vector generator (`VectorGenerator`).
+- Committed canonical signing test vectors (`signing/vectors/v1.json`) and test keys (`TEST-ONLY-p256.pem`, `TEST-ONLY-p256-other.pem`) covering positive, negative, and encoder rejection cases with RFC 6979 deterministic signatures.
+- Automated vector drift verification (`verifyVectorsUpToDate`) wired into Gradle check.

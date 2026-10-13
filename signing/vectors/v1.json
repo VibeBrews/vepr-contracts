@@ -1,0 +1,472 @@
+[
+  {
+    "name": "challenge_decision_approve_basic",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "payload_hex": "564550520101000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f7000000000000005dc0003494e52000c636172645f70726573656e740000019c1c38a40001",
+    "payload_sha256_hex": "1bd5cc0bd851537442f2f8c3f11666affb51002aefd54d5069bd636cd4aa060a",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQCfAj1MylJfrM_34FfAJtjhf2uJNslwTxTJB3kXFjpcLgIgUiMasEyQH9HoqOmvNGTmfkgtY9yDIK099CAJNHqtpO4",
+    "must_verify": true
+  },
+  {
+    "name": "challenge_decision_deny_basic",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "deny"
+    },
+    "payload_hex": "564550520101000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f7000000000000005dc0003494e52000c636172645f70726573656e740000019c1c38a40002",
+    "payload_sha256_hex": "e8cf7c4ed34098b0b0ab081a71b220268367bccdc724beda7a615341c65e775d",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQCGSZhY0SGLaQOZvUYKV0a0FHguypbU-w7AIkbIvzTg4QIgVJN6zLDVPBCwj9x1ul6_a2ChzCytpi7v2zsA3qprWnM",
+    "must_verify": true
+  },
+  {
+    "name": "pre_approval_basic",
+    "type": "PRE_APPROVAL",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "pre_approval_id": "018f0000-0000-7000-8000-000000000003",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "max_amount_minor": 5000,
+      "currency": "INR",
+      "channel_scope": "card_present",
+      "expires_at": 1770000000000
+    },
+    "payload_hex": "564550520102000f74656e616e745f746573745f313233018f0000000070008000000000000003018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000000000000013880003494e52000c636172645f70726573656e740000019c1c38a400",
+    "payload_sha256_hex": "bb6466b63e3f1ad71e5c58ba06afeac136ad9db04aece623a22e0e67e5b9b2ad",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQDWPaSjlarLd0kpgAIecmoJQ7vi4xIDY0HE2iJWJ4L_fgIgCkx7fCJmtQW_4fNanR3T_IqJFukDpVQF2Ueh0vgoaxU",
+    "must_verify": true
+  },
+  {
+    "name": "device_auth_basic",
+    "type": "DEVICE_AUTH",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000004",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "expires_at": 1770000000000
+    },
+    "payload_hex": "564550520103000f74656e616e745f746573745f313233018f0000000070008000000000000004018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f200000019c1c38a400",
+    "payload_sha256_hex": "6ff8e771376a18d2d51bc9ffc652fda36db90b5b7f871929f017de7fae92396e",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEQCIDoXGi0lyEnOpVVgF7kfbFEvGkdlqIUA6O4O6ERe2AOBAiAvdrtA7LlsuOUaqBIH1uO9eGvfd40KnjgT57nfvINhRg",
+    "must_verify": true
+  },
+  {
+    "name": "enrollment_binding_basic",
+    "type": "ENROLLMENT_BINDING",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "enrollment_code": "CODE-1234-OL",
+      "platform": "ios",
+      "device_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+      "approval_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEMNfldR8iwtfTPySnzHFDrtEpmrmVe2nnDQsIdVFuxySU8eeRSM1qwJEg65fqAluCZE3oO5B59EUqKJ9WEe06gQ"
+    },
+    "payload_hex": "564550520104000f74656e616e745f746573745f313233000a433044453132333430310003696f73005b3059301306072a8648ce3d020106082a8648ce3d0301070342000489b4d444bdca291a31099b0cb173a0849469d24e7d49ef00eb9880ffe17af201b0f8e146f5722c3f0127f500dd93378a1012d2cdbbbd86e8045e6c49f6dc80fb005b3059301306072a8648ce3d020106082a8648ce3d0301070342000430d7e5751f22c2d7d33f24a7cc7143aed1299ab9957b69e70d0b0875516ec72494f1e79148cd6ac09120eb97ea025b82644de83b9079f4452a289f5611ed3a81",
+    "payload_sha256_hex": "c700509b50b2f494b6f871cd3d243cb14d73c5590111d5f3270b536501115d02",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEQCIAzQpS-6h0hPvHaIQd-DSHgaV1vmAd5h5_2XJPZr0rTIAiAYFER_6axzaKcv2ZFyV10y4YiDrZVpLzJYa4-g6xhfpA",
+    "must_verify": true
+  },
+  {
+    "name": "challenge_decision_approve_multibyte_utf8",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "चाय वाला ☕",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "payload_hex": "564550520101000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233001ae0a49ae0a4bee0a4af20e0a4b5e0a4bee0a4b2e0a4be20e2989500000000000005dc0003494e52000c636172645f70726573656e740000019c1c38a40001",
+    "payload_sha256_hex": "0aaba156909a56d8fc74dc7fca9f6b11e10123c4086e75ccf17bf70263535692",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQD32NwECAsSVmhrJstnsC738r8lhjh7-S9ak9uMBYh9FAIgVdVyPEPBGZ8UMK5XCi75HrSM7TY6kyRhPD-CSzRmHdg",
+    "must_verify": true
+  },
+  {
+    "name": "challenge_decision_approve_amount_one",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "payload_hex": "564550520101000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f7000000000000000010003494e52000c636172645f70726573656e740000019c1c38a40001",
+    "payload_sha256_hex": "fd8c01cf5a1732868a9f9565bb8832d2e3524332bea10fb265ed3d40dc6dc113",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEQCIAZqbAc4ieEBtAZ3B1CC0wv5hfKtnEQOVsM3mbdV-CL3AiBu5G9FQYCeMB5mBylWOenNK-rTmovg8_0PWQTAAkdfuQ",
+    "must_verify": true
+  },
+  {
+    "name": "challenge_decision_approve_amount_large",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 9000000000000000,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "payload_hex": "564550520101000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f70001ff973cafa80000003494e52000c636172645f70726573656e740000019c1c38a40001",
+    "payload_sha256_hex": "f30f807611e7a76520cdc5145be74be97f332b3f6e586697113cff9ee51e498c",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQCSMtm4wRA-rWjyZMs8kz_nIyB9xU7aVUDS5w_fy1Sn3AIgDX64IGuWP2lcRSRcq66VBnu8fb7knheR-OyFJ3qkfXk",
+    "must_verify": true
+  },
+  {
+    "name": "challenge_decision_amount_changed",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1501,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "payload_hex": "564550520101000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f7000000000000005dd0003494e52000c636172645f70726573656e740000019c1c38a40001",
+    "payload_sha256_hex": "1ce11b3ff4a889b2b9c5719a294ae88198631fbbf26da543ceb62e909b62f54e",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQCfAj1MylJfrM_34FfAJtjhf2uJNslwTxTJB3kXFjpcLgIgUiMasEyQH9HoqOmvNGTmfkgtY9yDIK099CAJNHqtpO4",
+    "must_verify": false
+  },
+  {
+    "name": "challenge_decision_different_nonce",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "fe02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "payload_hex": "564550520101000f74656e616e745f746573745f313233018f0000000070008000000000000001018f0000000070008000000000000002fe02030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f7000000000000005dc0003494e52000c636172645f70726573656e740000019c1c38a40001",
+    "payload_sha256_hex": "709640948fc08b74b37bca03092b74717bcb1fd0f4724593cf7e28da89a77c9b",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQCfAj1MylJfrM_34FfAJtjhf2uJNslwTxTJB3kXFjpcLgIgUiMasEyQH9HoqOmvNGTmfkgtY9yDIK099CAJNHqtpO4",
+    "must_verify": false
+  },
+  {
+    "name": "challenge_decision_decision_flipped",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "deny"
+    },
+    "payload_hex": "564550520101000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f7000000000000005dc0003494e52000c636172645f70726573656e740000019c1c38a40002",
+    "payload_sha256_hex": "e8cf7c4ed34098b0b0ab081a71b220268367bccdc724beda7a615341c65e775d",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQCfAj1MylJfrM_34FfAJtjhf2uJNslwTxTJB3kXFjpcLgIgUiMasEyQH9HoqOmvNGTmfkgtY9yDIK099CAJNHqtpO4",
+    "must_verify": false
+  },
+  {
+    "name": "challenge_decision_type_byte_changed",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "payload_hex": "564550520102000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f7000000000000005dc0003494e52000c636172645f70726573656e740000019c1c38a40001",
+    "payload_sha256_hex": "3a2b43ee4428d4401771aa300731fef0bc88878d0fc3ceb537472f7a188783a4",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQCfAj1MylJfrM_34FfAJtjhf2uJNslwTxTJB3kXFjpcLgIgUiMasEyQH9HoqOmvNGTmfkgtY9yDIK099CAJNHqtpO4",
+    "must_verify": false
+  },
+  {
+    "name": "challenge_decision_version_02",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "payload_hex": "564550520201000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f7000000000000005dc0003494e52000c636172645f70726573656e740000019c1c38a40001",
+    "payload_sha256_hex": "2810b249c651892c443617490dcc4878ae3e61ad484d6dcafd305fde23b7916e",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQCfAj1MylJfrM_34FfAJtjhf2uJNslwTxTJB3kXFjpcLgIgUiMasEyQH9HoqOmvNGTmfkgtY9yDIK099CAJNHqtpO4",
+    "must_verify": false
+  },
+  {
+    "name": "challenge_decision_trailing_byte",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "payload_hex": "564550520101000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f7000000000000005dc0003494e52000c636172645f70726573656e740000019c1c38a4000100",
+    "payload_sha256_hex": "b9f09738cce805758d055ca8a465b6db45550ce7aa4e0c8361a9a1848190023b",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQCfAj1MylJfrM_34FfAJtjhf2uJNslwTxTJB3kXFjpcLgIgUiMasEyQH9HoqOmvNGTmfkgtY9yDIK099CAJNHqtpO4",
+    "must_verify": false
+  },
+  {
+    "name": "challenge_decision_raw_rs_signature",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "payload_hex": "564550520101000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f7000000000000005dc0003494e52000c636172645f70726573656e740000019c1c38a40001",
+    "payload_sha256_hex": "1bd5cc0bd851537442f2f8c3f11666affb51002aefd54d5069bd636cd4aa060a",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "nwI9TMpSX6zP9-BXwCbY4X9riTbJcE8UyQd5FxY6XC5SIxqwTJAf0eio6a80ZOZ-SC1j3IMgrT30IAk0eq2k7g",
+    "must_verify": false
+  },
+  {
+    "name": "challenge_decision_wrong_key",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "payload_hex": "564550520101000f74656e616e745f746573745f313233018f0000000070008000000000000001018f00000000700080000000000000020102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f2000096d657263685f313233000b436f666665652053686f7000000000000005dc0003494e52000c636172645f70726573656e740000019c1c38a40001",
+    "payload_sha256_hex": "1bd5cc0bd851537442f2f8c3f11666affb51002aefd54d5069bd636cd4aa060a",
+    "public_key_spki_b64url": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEibTURL3KKRoxCZsMsXOghJRp0k59Se8A65iA_-F68gGw-OFG9XIsPwEn9QDdkzeKEBLSzbu9hugEXmxJ9tyA-w",
+    "signature_der_b64url": "MEUCIQDUlZ5bK77WELkMhqhhh5Uf4fNDpYS5QneyQ_HR7yxokgIgZ1-1kKRxO6yFMawGSWPNUQgMMuhFYyi2jONdD5T4_3c",
+    "must_verify": false
+  },
+  {
+    "name": "encoder_error_non_nfc_merchant_name",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Café",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "expect_encoder_error": true,
+    "error_reason": "merchant_name is not NFC-normalized"
+  },
+  {
+    "name": "encoder_error_empty_tenant_id",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "expect_encoder_error": true,
+    "error_reason": "tenant_id cannot be empty"
+  },
+  {
+    "name": "encoder_error_string_over_1024_bytes",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "expect_encoder_error": true,
+    "error_reason": "merchant_name exceeds 1024 bytes"
+  },
+  {
+    "name": "encoder_error_control_character",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee\u0000Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "expect_encoder_error": true,
+    "error_reason": "merchant_name contains control character"
+  },
+  {
+    "name": "encoder_error_amount_zero",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 0,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "expect_encoder_error": true,
+    "error_reason": "amount must be positive"
+  },
+  {
+    "name": "encoder_error_lowercase_currency",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "inr",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "expect_encoder_error": true,
+    "error_reason": "currency must be upper-case 3-letter ISO 4217"
+  },
+  {
+    "name": "encoder_error_nonce_wrong_length",
+    "type": "CHALLENGE_DECISION",
+    "fields": {
+      "tenant_id": "tenant_test_123",
+      "challenge_id": "018f0000-0000-7000-8000-000000000001",
+      "device_id": "018f0000-0000-7000-8000-000000000002",
+      "nonce": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f",
+      "merchant_id": "merch_123",
+      "merchant_name": "Coffee Shop",
+      "amount_minor": 1500,
+      "currency": "INR",
+      "channel": "card_present",
+      "expires_at": 1770000000000,
+      "decision": "approve"
+    },
+    "expect_encoder_error": true,
+    "error_reason": "nonce must be exactly 32 bytes"
+  }
+]
