@@ -12,28 +12,43 @@ The single source of truth for every message that crosses a repo boundary in Vep
 ### Java / JVM Services
 
 Contracts are published to **GitHub Packages** under the `io.vepr` group:
+- `io.vepr:vepr-contracts-openapi:<version>`
+- `io.vepr:vepr-contracts-proto:<version>`
+- `io.vepr:vepr-contracts-signing:<version>`
+
+#### Maven / Gradle Configuration
+
+Configure authentication in your consumer build file (`settings.gradle.kts` or `build.gradle.kts`):
 
 ```kotlin
-// settings.gradle.kts or build.gradle.kts
 repositories {
     mavenCentral()
     maven {
-        url = uri("https://maven.pkg.github.com/vepr-io/vepr-contracts")
+        name = "GitHubPackages"
+        url = uri("https://maven.pkg.github.com/VibeBrews/vepr-contracts")
         credentials {
-            username = providers.environmentVariable("GITHUB_ACTOR").getOrElse("")
-            password = providers.environmentVariable("GITHUB_TOKEN").getOrElse("")
+            username = project.findProperty("gpr.user") as String? ?: System.getenv("GITHUB_ACTOR") ?: ""
+            password = project.findProperty("gpr.key") as String? ?: System.getenv("GITHUB_TOKEN") ?: ""
         }
     }
 }
 
 dependencies {
-    implementation("io.vepr:vepr-contracts-openapi:<version>")
-    implementation("io.vepr:vepr-contracts-proto:<version>")
-    implementation("io.vepr:vepr-contracts-signing:<version>")
+    implementation("io.vepr:vepr-contracts-openapi:0.1.0")
+    implementation("io.vepr:vepr-contracts-proto:0.1.0")
+    implementation("io.vepr:vepr-contracts-signing:0.1.0")
 }
 ```
 
-For local multi-repo development, add `vepr.localKit=true` to `local.properties` to use Gradle composite builds against local sibling checkouts.
+For local development, add your GitHub credentials to `~/.gradle/gradle.properties`:
+```properties
+gpr.user=<your-github-username>
+gpr.key=<github-personal-access-token>
+```
+> [!NOTE]
+> The GitHub Personal Access Token requires the `read:packages` scope (classic PAT). In CI environments, set `GITHUB_ACTOR` and `GITHUB_TOKEN` environment variables.
+
+For local multi-repo development across sibling checkouts, add `vepr.localKit=true` to `local.properties` to use Gradle composite builds.
 
 ### iOS / Swift Package Manager
 
@@ -43,7 +58,7 @@ In your `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/vepr-io/vepr-contracts.git", from: "<version>")
+    .package(url: "https://github.com/VibeBrews/vepr-contracts.git", from: "0.1.0")
 ],
 targets: [
     .target(
@@ -55,6 +70,10 @@ targets: [
     )
 ]
 ```
+
+Products provided:
+- `VeprSigning`: Cryptographic reference encoder and verifier for canonical signing v1 payloads.
+- `VeprDeviceAPI`: Generated Swift client for device-facing OpenAPI (`openapi/device.yaml`).
 
 ---
 
@@ -75,7 +94,7 @@ targets: [
 │   └── VeprDeviceAPI/              # Swift OpenAPI client generated from device.yaml
 ├── Tests/                          # Swift tests & vector verification
 ├── docs/                           # Architecture, conventions, and error codes
-└── scripts/                        # Utility scripts (sync-swift.sh)
+└── scripts/                        # Utility scripts (sync-swift.sh, check-breaking.sh, release-notes.sh)
 ```
 
 ---
@@ -84,7 +103,29 @@ targets: [
 
 - **Lint OpenAPI**: `npx @redocly/cli lint openapi/*.yaml`
 - **Lint Proto**: `buf lint`
-- **Check Breaking Changes**: `oasdiff breaking <last-tag-spec> openapi/<file>.yaml` and `buf breaking --against '.git#tag=<last-tag>'`
+- **Check Breaking Changes**: `./scripts/check-breaking.sh`
 - **Java Build & Tests**: `cd java && ./gradlew check`
-- **Swift Tests**: `swift test`
+- **Swift Tests**: `swift test` (requires Xcode 26 / Swift 6.2+)
 - **Sync Swift Device Spec**: `scripts/sync-swift.sh` (`--check` in CI)
+
+---
+
+## Releasing
+
+Releases are tag-driven and automated via GitHub Actions (`.github/workflows/release.yml`):
+
+1. **Update CHANGELOG.md**: Move unreleased entries under `## [X.Y.Z] - YYYY-MM-DD`.
+2. **Commit changes**: Commit the updated changelog and any release preparation files.
+3. **Create and push annotated tag**:
+   ```bash
+   git tag -a vX.Y.Z -m "vX.Y.Z"
+   git push origin vX.Y.Z
+   ```
+4. **Automated Release Execution**:
+   - The `ci` workflow runs full validation across all contracts (lint, breaking, sync, Java, Swift).
+   - The `publish` job validates tag format, extracts changelog notes with `scripts/release-notes.sh`, and publishes Java artifacts (`io.vepr:vepr-contracts-*`) to GitHub Packages.
+   - The `github-release` job publishes the GitHub Release with the extracted release notes.
+   - SwiftPM consumers consume the tagged release directly from git.
+
+> [!WARNING]
+> Breaking changes are forbidden without a major version bump, an entry in `CHANGELOG.md`, and explicit approval per `AGENTS.md`. `oasdiff` and `buf breaking` checks must pass against the previous release tag.

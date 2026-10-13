@@ -1,0 +1,9 @@
+# Default code owner for all files across vepr-contracts
+* @ARDA7787
+
+# Signing contracts and cryptographic reference implementations
+/signing/ @ARDA7787
+/proto/ @ARDA7787
+/java/contracts-signing/ @ARDA7787
+/Sources/VeprSigning/ @ARDA7787
+/Tests/VeprSigningTests/ @ARDA7787

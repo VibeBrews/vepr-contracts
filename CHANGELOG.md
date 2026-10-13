@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - Unreleased
+## [0.1.0] - 2026-10-13
 
 ### Added
 - Repository bootstrap with skeleton directories and configuration.
@@ -15,7 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Phone-facing Device REST API specification (`openapi/device.yaml`) with token-challenge exchange, challenge signing (type 0x01), and pre-approvals (type 0x02).
 - Shared OpenAPI components (`openapi/components/common.yaml`) for RFC 9457 Problem details, standard error responses, and merchant models.
 - Redocly configuration (`.redocly.yaml`) enforcing strict validation including `additionalProperties: false` on all object schemas.
-- Breaking-change verification script (`scripts/check-breaking.sh`) and Swift spec synchronization (`scripts/sync-swift.sh`).
+- Breaking-change verification script (`scripts/check-breaking.sh`) rewritten with `oasdiff --fail-on ERR` and `buf breaking` checks against latest merged release tag.
+- Release notes extraction script (`scripts/release-notes.sh`) for tag-driven release pipelines.
+- Swift spec synchronization script (`scripts/sync-swift.sh`) syncing both `openapi/device.yaml` and `signing/vectors/v1.json` with strict `--check` mode.
 - Internal gRPC contract: `CredentialService` (`VerifySignature`, `GetDevicesForCustomer`) in `proto/vepr/credentials/v1/credentials.proto`.
 - NATS JetStream event definitions (`ChallengeCreated`, `AuthorizationDecided`, `DeviceEnrolled`, `DeviceRevoked`) in `proto/vepr/events/v1/events.proto`.
 - Buf configuration (`buf.yaml`) enforcing `STANDARD` lint and `FILE` breaking rules.
@@ -29,4 +31,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `VeprSigning`: pure Foundation + CryptoKit reference encoder (`PayloadEncoder`), key rules verifier (`KeyRules`), and enrollment code normalizer (`EnrollmentCodes`).
   - `VeprDeviceAPI`: generated Swift OpenAPI client for `openapi/device.yaml` using pinned `swift-openapi-generator` 1.14.0, `swift-openapi-runtime` 1.13.0, and `swift-openapi-urlsession` 1.3.2.
   - `VeprSigningTests`: Swift Testing suite verifying all 23 canonical test vectors from `signing/vectors/v1.json` and unit tests.
-- Extended Swift sync script (`scripts/sync-swift.sh`) syncing both `openapi/device.yaml` and `signing/vectors/v1.json` with strict `--check` mode.
+- Continuous Integration workflow (`.github/workflows/ci.yml`) enforcing specs linting, breaking change checks, Swift synchronization, Java build & check, and Swift test suite.
+- Tag-driven release workflow (`.github/workflows/release.yml`) running full CI, publishing Java artifacts to GitHub Packages, and creating GitHub Releases with changelog notes.
+- Pinned commit SHAs with automated verification script (`scripts/verify-pinned-shas.sh`) for all GitHub Actions.
+- Dependabot configuration (`.github/dependabot.yml`) for weekly dependency updates across Gradle, GitHub Actions, and Swift.
+- Repository code owners definition (`.github/CODEOWNERS`) configuring `@ARDA7787` for global and signing contracts oversight.

@@ -43,7 +43,7 @@ subprojects {
                 name = "GitHubPackages"
                 url = uri(
                     "https://maven.pkg.github.com/${
-                        providers.environmentVariable("GITHUB_REPOSITORY").getOrElse("vepr-io/vepr-contracts")
+                        providers.environmentVariable("GITHUB_REPOSITORY").getOrElse("VibeBrews/vepr-contracts")
                     }"
                 )
                 credentials {
