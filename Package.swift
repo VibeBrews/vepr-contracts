@@ -20,7 +20,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/apple/swift-openapi-generator.git", exact: "1.14.0"),
         .package(url: "https://github.com/apple/swift-openapi-runtime.git", exact: "1.13.0"),
-        .package(url: "https://github.com/apple/swift-openapi-urlsession.git", exact: "1.3.2")
+        .package(url: "https://github.com/apple/swift-openapi-urlsession.git", exact: "1.4.0")
     ],
     targets: [
         .target(
